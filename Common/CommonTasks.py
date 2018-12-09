@@ -1,5 +1,6 @@
 import configparser
 import logging
+import sys
 
 import sendgrid
 from sendgrid.helpers.mail import *
@@ -30,12 +31,21 @@ def Send_Mail(emailaddress='siddharth.joshi21@gmail.com'):
     response = sg.client.mail.send.post(request_body=mail.get())
 
 
-def logtofile():
-    logging.basicConfig(filename='JarvisLogs.log', level=logging.DEBUG)
-    logging.debug('This message should go to the log file')
-    logging.info('So should this')
-    logging.warning('And this, too')
+def logtofile(message, type, filename):
+    logging.basicConfig(filename=filename, level=logging.DEBUG)
+    logging.debug(message)
+    logging.info(message)
+    logging.warning(message)
 
+
+def logtoconsole(message, type):
+    logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+    if type == 'debug':
+        logging.debug(message)
+    if type == 'info':
+        logging.info(message)
+    if type == 'warning':
+        logging.warning(message)
 
 def getconfig(section, subsection):
     config = configparser.ConfigParser()
@@ -46,7 +56,13 @@ def getconfig(section, subsection):
 ## Read from the queue; this will be spawned as a separate Process
 def commontasksinstance(queue):
     while True:
-        msg = queue.get()  # Read from the queue and do nothing
+        msg = queue.get()  # Read from the queue and do complete the task
+        if (msg == SMSJob):
+            logtoconsole(message=msg.Message, type='debug')
+
+        if (msg == EmailJob):
+            logtoconsole(message=msg.Body, type='debug')
+
         ## Condition to break out from the loop
         if (msg == 'DONE'):
             break
