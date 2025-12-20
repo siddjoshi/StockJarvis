@@ -1,0 +1,1 @@
+"""Example trading strategies."""
