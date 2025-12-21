@@ -25,6 +25,21 @@ from data.models import (
 
 
 # ============================================================================
+# Test Fixtures
+# ============================================================================
+
+@pytest.fixture
+def mock_price_fetch(request):
+    """
+    Helper fixture to mock _get_current_price consistently across tests.
+    Usage: Just pass the price you want to return.
+    """
+    def _mock(tracker, price=2475.00):
+        return patch.object(tracker, '_get_current_price', return_value=price)
+    return _mock
+
+
+# ============================================================================
 # Concurrent Operations Tests
 # ============================================================================
 
@@ -37,6 +52,7 @@ class TestConcurrentOperations:
         self,
         test_async_db_session: AsyncSession,
         sample_symbol: Symbol,
+        mock_price_fetch,
     ):
         """Test tracking multiple positions concurrently."""
         async def get_session():
@@ -68,8 +84,8 @@ class TestConcurrentOperations:
         positions = result.scalars().all()
         position_ids = [p.id for p in positions]
         
-        # Mock price fetching
-        with patch.object(tracker, '_get_current_price', return_value=2475.00):
+        # Mock price fetching using helper
+        with mock_price_fetch(tracker, 2475.00):
             # Track all positions concurrently
             tasks = [tracker.track_position(pid) for pid in position_ids]
             results = await asyncio.gather(*tasks)
@@ -317,8 +333,8 @@ class TestStaleDataHandling:
         await test_async_db_session.commit()
         await test_async_db_session.refresh(position)
         
-        # Check last update time
-        assert position.id in tracker._last_update or position.id not in tracker._last_update
+        # Check last update time - should not be in cache yet
+        assert position.id not in tracker._last_update
         
         # Track position (should update timestamp)
         with patch.object(tracker, '_get_current_price', return_value=2480.00):
