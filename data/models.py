@@ -317,8 +317,8 @@ class Alert(Base):
     email_sent = Column(Boolean, default=False)
     sms_sent = Column(Boolean, default=False)
     
-    # Metadata
-    metadata = Column(Text)  # JSON string for additional data
+    # Extra data
+    extra_data = Column(Text)  # JSON string for additional data
     
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     

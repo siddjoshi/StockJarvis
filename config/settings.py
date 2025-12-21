@@ -14,8 +14,8 @@ class DatabaseSettings(BaseSettings):
     
     host: str = Field(default="localhost", description="Database host")
     port: int = Field(default=3306, description="Database port")
-    user: str = Field(description="Database username")
-    password: str = Field(description="Database password")
+    user: str = Field(default="test", description="Database username")
+    password: str = Field(default="test", description="Database password")
     database: str = Field(default="stockjarvis", description="Database name")
     pool_size: int = Field(default=5, description="Connection pool size")
     pool_recycle: int = Field(default=3600, description="Pool recycle time in seconds")
@@ -31,7 +31,7 @@ class DatabaseSettings(BaseSettings):
 class QuandlSettings(BaseSettings):
     """Quandl API configuration."""
     
-    api_key: str = Field(description="Quandl API key")
+    api_key: str = Field(default="test_key", description="Quandl API key")
     rate_limit_calls: int = Field(default=50, description="Calls per day on free tier")
     
     model_config = SettingsConfigDict(env_prefix="QUANDL_")
@@ -40,8 +40,8 @@ class QuandlSettings(BaseSettings):
 class ZerodhaSettings(BaseSettings):
     """Zerodha Kite Connect API configuration."""
     
-    api_key: str = Field(description="Kite Connect API key")
-    api_secret: str = Field(description="Kite Connect API secret")
+    api_key: str = Field(default="test_key", description="Kite Connect API key")
+    api_secret: str = Field(default="test_secret", description="Kite Connect API secret")
     access_token: Optional[str] = Field(default=None, description="Kite access token (generated after login)")
     request_token: Optional[str] = Field(default=None, description="Request token from OAuth")
     redirect_url: str = Field(default="http://localhost:5000/jarvispostback", description="OAuth redirect URL")
