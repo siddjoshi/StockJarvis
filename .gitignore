@@ -1,5 +1,9 @@
 # Environment and Configuration
 .env
+.env.local
+.env.*.local
+.env.production
+.env.staging
 config.cfg
 *.cfg
 
@@ -71,6 +75,10 @@ htmlcov/
 
 # Docker
 .dockerignore
+docker-compose.override.yml
+*.tar.gz
+celerybeat-schedule
+celerybeat.pid
 
 # Database
 *.db
@@ -80,8 +88,8 @@ htmlcov/
 # Jupyter Notebooks
 .ipynb_checkpoints
 
-# Data Files
-data/
+# Data Files (exclude data source code directory)
+data_files/
 *.csv
 *.xlsx
 *.parquet

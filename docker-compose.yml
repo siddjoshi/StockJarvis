@@ -1,0 +1,362 @@
+# docker-compose.yml - StockJarvis Multi-Service Orchestration
+
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  mysql:
+    image: mariadb:10.11
+    container_name: stockjarvis_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE:-stockjarvis}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Kolkata
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ./docker/mysql/conf.d:/etc/mysql/conf.d:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - stockjarvis_network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis Service
+  redis:
+    image: redis:7-alpine
+    container_name: stockjarvis_redis
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      TZ: Asia/Kolkata
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "6379:6379"
+    networks:
+      - stockjarvis_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # FastAPI Application Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        PYTHON_VERSION: 3.11
+    container_name: stockjarvis_api
+    restart: unless-stopped
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4
+    environment:
+      # Database
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE:-stockjarvis}
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      
+      # Application
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      APP_SECRET_KEY: ${APP_SECRET_KEY}
+      
+      # Trading
+      TRADING_MODE: ${TRADING_MODE:-paper}
+      TRADING_CAPITAL: ${TRADING_CAPITAL:-100000}
+      TRADING_MAX_POSITIONS: ${TRADING_MAX_POSITIONS:-5}
+      
+      # API Keys
+      QUANDL_API_KEY: ${QUANDL_API_KEY}
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+      
+      # Notifications
+      NOTIFICATION_SENDGRID_API_KEY: ${NOTIFICATION_SENDGRID_API_KEY:-}
+      NOTIFICATION_EMAIL_FROM: ${NOTIFICATION_EMAIL_FROM:-jarvis@stocktrading.com}
+      NOTIFICATION_EMAIL_TO: ${NOTIFICATION_EMAIL_TO:-admin@example.com}
+      
+      TZ: Asia/Kolkata
+    volumes:
+      - ./logs:/app/logs
+      - api_data:/app/data
+    ports:
+      - "8000:8000"
+    networks:
+      - stockjarvis_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # Celery Worker Service
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        PYTHON_VERSION: 3.11
+    container_name: stockjarvis_celery_worker
+    restart: unless-stopped
+    command: celery -A workers.celery_app worker --loglevel=info --concurrency=4 --max-tasks-per-child=100
+    environment:
+      # Database
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE:-stockjarvis}
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      
+      # Application
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      
+      # Trading
+      TRADING_MODE: ${TRADING_MODE:-paper}
+      TRADING_CAPITAL: ${TRADING_CAPITAL:-100000}
+      
+      # API Keys
+      QUANDL_API_KEY: ${QUANDL_API_KEY}
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+      
+      # Notifications
+      NOTIFICATION_SENDGRID_API_KEY: ${NOTIFICATION_SENDGRID_API_KEY:-}
+      NOTIFICATION_EMAIL_FROM: ${NOTIFICATION_EMAIL_FROM:-jarvis@stocktrading.com}
+      NOTIFICATION_EMAIL_TO: ${NOTIFICATION_EMAIL_TO:-admin@example.com}
+      
+      TZ: Asia/Kolkata
+      C_FORCE_ROOT: "true"
+    volumes:
+      - ./logs:/app/logs
+      - worker_data:/app/data
+    networks:
+      - stockjarvis_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A workers.celery_app inspect ping -d celery@$$HOSTNAME"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # Celery Beat Scheduler Service
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        PYTHON_VERSION: 3.11
+    container_name: stockjarvis_celery_beat
+    restart: unless-stopped
+    command: celery -A workers.celery_app beat --loglevel=info --pidfile=/tmp/celerybeat.pid
+    environment:
+      # Database
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE:-stockjarvis}
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      
+      # Application
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      
+      TZ: Asia/Kolkata
+      C_FORCE_ROOT: "true"
+    volumes:
+      - ./logs:/app/logs
+      - beat_data:/app/data
+    networks:
+      - stockjarvis_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Flower - Celery Monitoring Dashboard
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        PYTHON_VERSION: 3.11
+    container_name: stockjarvis_flower
+    restart: unless-stopped
+    command: celery -A workers.celery_app flower --port=5555 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-admin}
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      TZ: Asia/Kolkata
+      C_FORCE_ROOT: "true"
+    ports:
+      - "5555:5555"
+    networks:
+      - stockjarvis_network
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Named Volumes for Data Persistence
+volumes:
+  mysql_data:
+    driver: local
+    name: stockjarvis_mysql_data
+  redis_data:
+    driver: local
+    name: stockjarvis_redis_data
+  api_data:
+    driver: local
+    name: stockjarvis_api_data
+  worker_data:
+    driver: local
+    name: stockjarvis_worker_data
+  beat_data:
+    driver: local
+    name: stockjarvis_beat_data
+
+# Networks for Service Isolation
+networks:
+  stockjarvis_network:
+    driver: bridge
+    name: stockjarvis_network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -116,6 +116,12 @@ class AppSettings(BaseSettings):
     log_level: str = Field(default="INFO", description="Logging level")
     log_file: Path = Field(default=Path("logs/jarvis.log"), description="Log file path")
     
+    # Security
+    secret_key: str = Field(
+        default="your-secret-key-change-in-production-use-openssl-rand-hex-32",
+        description="Secret key for JWT token signing"
+    )
+    
     # API settings
     api_host: str = Field(default="0.0.0.0", description="API server host")
     api_port: int = Field(default=8000, description="API server port")

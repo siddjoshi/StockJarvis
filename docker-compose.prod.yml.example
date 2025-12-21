@@ -1,0 +1,50 @@
+# Production Override Example
+# Use: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  mysql:
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4.0'
+        reservations:
+          memory: 2G
+          cpus: '2.0'
+    volumes:
+      - /mnt/data/mysql:/var/lib/mysql  # Use dedicated mount point
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api:
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+      replicas: 2  # Multiple instances behind load balancer
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      APP_LOG_LEVEL: WARNING
+
+  celery_worker:
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4.0'
+      replicas: 3  # Scale workers based on load
+
+  flower:
+    # Don't expose Flower in production or use VPN/auth gateway
+    ports: []
+    networks:
+      - stockjarvis_network
