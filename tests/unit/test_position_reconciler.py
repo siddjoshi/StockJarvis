@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from core.position_reconciler import (
@@ -529,7 +530,6 @@ class TestAuditLogging:
         assert len(result.discrepancies) > 0
         
         # Check audit log was created (Alert with type "reconciliation")
-        from sqlalchemy import select
         stmt = select(Alert).where(Alert.type == "reconciliation")
         alerts_result = await test_async_db_session.execute(stmt)
         alerts = alerts_result.scalars().all()

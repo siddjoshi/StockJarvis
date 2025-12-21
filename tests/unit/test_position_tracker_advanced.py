@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from core.position_tracker import (
@@ -77,7 +78,6 @@ class TestConcurrentOperations:
         await test_async_db_session.commit()
         
         # Get position IDs
-        from sqlalchemy import select
         result = await test_async_db_session.execute(
             select(Position).where(Position.is_open == True)
         )
@@ -613,7 +613,6 @@ class TestPerformance:
         await test_async_db_session.commit()
         
         # Get position IDs
-        from sqlalchemy import select
         result = await test_async_db_session.execute(
             select(Position).where(Position.is_open == True)
         )
