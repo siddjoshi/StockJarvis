@@ -22,7 +22,7 @@ from config import settings
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/backtests", tags=["backtests"])
+router = APIRouter()
 
 
 @router.post("/", response_model=BacktestResultResponse, status_code=status.HTTP_201_CREATED)

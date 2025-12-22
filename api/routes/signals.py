@@ -23,7 +23,7 @@ from core.logger import get_logger
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/signals", tags=["signals"])
+router = APIRouter()
 
 
 @router.get("/", response_model=List[SignalWithDetails])
