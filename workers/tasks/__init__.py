@@ -1,7 +1,8 @@
 # workers/tasks/__init__.py
 """
 Celery tasks for StockJarvis.
-Contains task modules for data collection, signal generation, and position monitoring.
+Contains task modules for data collection, signal generation, position monitoring,
+risk management, and system maintenance.
 """
 
 from workers.tasks.data_collection import (
@@ -19,6 +20,17 @@ from workers.tasks.position_monitoring import (
     reconcile_broker_positions,
     update_position_pnl,
 )
+from workers.tasks.risk_management import (
+    check_risk_limits,
+    update_circuit_breaker,
+    calculate_position_sizes,
+)
+from workers.tasks.system_maintenance import (
+    cleanup_old_data,
+    backup_database,
+    health_check,
+    generate_daily_report,
+)
 
 __all__ = [
     # Data collection tasks
@@ -33,4 +45,13 @@ __all__ = [
     "monitor_positions",
     "reconcile_broker_positions",
     "update_position_pnl",
+    # Risk management tasks
+    "check_risk_limits",
+    "update_circuit_breaker",
+    "calculate_position_sizes",
+    # System maintenance tasks
+    "cleanup_old_data",
+    "backup_database",
+    "health_check",
+    "generate_daily_report",
 ]

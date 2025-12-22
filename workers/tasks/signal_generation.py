@@ -416,7 +416,7 @@ def cleanup_old_signals(self, days: int = 90) -> Dict[str, Any]:
             
             # Find old signals
             old_signals = session.query(Signal).filter(
-                Signal.generated_at < cutoff_date
+                Signal.created_at < cutoff_date
             ).all()
             
             logger.info(f"Found {len(old_signals)} signals older than {days} days")
