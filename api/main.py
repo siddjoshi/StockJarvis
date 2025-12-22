@@ -25,7 +25,8 @@ from api.routes import (
     orders_router,
     backtest_router,
     risk_router,
-    data_router
+    data_router,
+    broker_router
 )
 
 logger = get_logger(__name__)
@@ -273,6 +274,7 @@ app.include_router(orders_router, prefix="/api/orders", tags=["Orders"])
 app.include_router(backtest_router, prefix="/api/backtests", tags=["Backtesting"])
 app.include_router(risk_router, prefix="/api/risk", tags=["Risk Management"])
 app.include_router(data_router, prefix="/api/data", tags=["Data Providers"])
+app.include_router(broker_router, prefix="/api/broker", tags=["Broker Integration"])
 
 
 # ==================== Development Entry Point ====================
