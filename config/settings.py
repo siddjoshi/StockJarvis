@@ -131,6 +131,12 @@ class AppSettings(BaseSettings):
     data_update_schedule: str = Field(default="0 18 * * 1-5", description="Cron schedule for daily data updates")
     scanner_schedule: str = Field(default="30 9,15 * * 1-5", description="Cron schedule for strategy scans")
     
+    # Data provider settings
+    primary_data_provider: str = Field(default="yahoo", description="Primary data provider: yahoo, nse, bse, zerodha")
+    fallback_data_provider: str = Field(default="yahoo", description="Fallback data provider")
+    data_cache_ttl: int = Field(default=60, description="Data cache TTL in seconds")
+    historical_data_start_date: str = Field(default="2020-01-01", description="Default start date for historical data")
+    
     model_config = SettingsConfigDict(env_prefix="APP_")
     
     @validator("log_level")
@@ -140,6 +146,14 @@ class AppSettings(BaseSettings):
         if v.upper() not in valid_levels:
             raise ValueError(f"Log level must be one of {valid_levels}")
         return v.upper()
+    
+    @validator("primary_data_provider", "fallback_data_provider")
+    def validate_provider(cls, v):
+        """Ensure data provider is valid."""
+        valid_providers = ["yahoo", "nse", "bse", "zerodha"]
+        if v.lower() not in valid_providers:
+            raise ValueError(f"Data provider must be one of {valid_providers}")
+        return v.lower()
 
 
 class Settings(BaseSettings):
