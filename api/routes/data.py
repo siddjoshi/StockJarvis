@@ -5,16 +5,21 @@ Provides access to data provider operations, symbol management, and data collect
 """
 
 from typing import List, Optional, Dict, Any
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from api.dependencies import get_db, require_active_user
+from api.dependencies import get_db, require_active_user, require_superuser
 from core.logger import get_logger
 
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+# Constants for validation
+MAX_BACKFILL_SYMBOLS = 100
+MAX_BACKFILL_DAYS = 5 * 365  # 5 years
 
 
 # ==================== Pydantic Schemas ====================
@@ -55,7 +60,7 @@ class BackfillRequest(BaseModel):
     """Request for historical data backfill."""
     symbols: Optional[List[str]] = Field(
         default=None,
-        description="Symbols to backfill (uses F&O symbols if not specified)"
+        description=f"Symbols to backfill (max {MAX_BACKFILL_SYMBOLS}, uses F&O symbols if not specified)"
     )
     start_date: Optional[str] = Field(
         default=None,
@@ -65,6 +70,45 @@ class BackfillRequest(BaseModel):
         default=None,
         description="End date (YYYY-MM-DD format)"
     )
+    
+    @field_validator('symbols')
+    @classmethod
+    def validate_symbols_count(cls, v):
+        """Validate maximum number of symbols."""
+        if v is not None and len(v) > MAX_BACKFILL_SYMBOLS:
+            raise ValueError(
+                f"Maximum {MAX_BACKFILL_SYMBOLS} symbols allowed per request, got {len(v)}"
+            )
+        return v
+    
+    @field_validator('start_date')
+    @classmethod
+    def validate_start_date(cls, v):
+        """Validate start date format and range."""
+        if v is not None:
+            try:
+                start = datetime.strptime(v, "%Y-%m-%d")
+                min_date = datetime.utcnow() - timedelta(days=MAX_BACKFILL_DAYS)
+                if start < min_date:
+                    raise ValueError(
+                        f"Start date cannot be more than {MAX_BACKFILL_DAYS // 365} years ago"
+                    )
+            except ValueError as e:
+                if "does not match format" in str(e):
+                    raise ValueError("Start date must be in YYYY-MM-DD format")
+                raise
+        return v
+    
+    @field_validator('end_date')
+    @classmethod
+    def validate_end_date(cls, v):
+        """Validate end date format."""
+        if v is not None:
+            try:
+                datetime.strptime(v, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError("End date must be in YYYY-MM-DD format")
+        return v
 
 
 class DataStatusResponse(BaseModel):
@@ -406,10 +450,12 @@ async def trigger_backfill(
 @router.get("/status", response_model=DataStatusResponse)
 async def get_data_collection_status(
     db: Session = Depends(get_db),
-    current_user = Depends(require_active_user)
+    current_user = Depends(require_superuser)
 ):
     """
     Get data collection status and provider statistics.
+    
+    **Requires admin privileges.**
     
     **Example Response:**
     ```json

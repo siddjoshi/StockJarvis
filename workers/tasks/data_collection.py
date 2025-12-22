@@ -13,6 +13,12 @@ from core.logger import get_logger
 from data.repository import repository
 from data.models import Timeframe, Symbol
 from config import settings
+from DataCollector.providers import (
+    AuthenticationError,
+    RateLimitError,
+    DataNotFoundError,
+    ProviderError,
+)
 
 logger = get_logger(__name__)
 
@@ -632,9 +638,36 @@ def backfill_historical_data(
                 stats['symbols_processed'] += 1
                 
             except Exception as e:
-                logger.error(f"Error backfilling {symbol}: {e}")
+                # Classify error type for better troubleshooting
+                error_type = "unknown"
+                is_transient = False
+                
+                if isinstance(e, AuthenticationError):
+                    error_type = "authentication"
+                    is_transient = False
+                elif isinstance(e, RateLimitError):
+                    error_type = "rate_limit"
+                    is_transient = True
+                elif isinstance(e, DataNotFoundError):
+                    error_type = "data_not_found"
+                    is_transient = False
+                elif isinstance(e, ProviderError):
+                    error_type = "provider_error"
+                    is_transient = True
+                elif isinstance(e, (ConnectionError, TimeoutError)):
+                    error_type = "network"
+                    is_transient = True
+                
+                logger.error(
+                    f"Error backfilling {symbol} (type={error_type}, transient={is_transient}): {e}"
+                )
                 stats['symbols_failed'] += 1
-                stats['errors'].append(f"{symbol}: {str(e)}")
+                stats['errors'].append({
+                    "symbol": symbol,
+                    "error": str(e),
+                    "error_type": error_type,
+                    "is_transient": is_transient,
+                })
         
         stats['status'] = 'completed'
         stats['end_time'] = datetime.utcnow().isoformat()
