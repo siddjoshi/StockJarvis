@@ -409,7 +409,6 @@ def update_symbol_list(self, exchange: str = "NSE") -> Dict[str, Any]:
         # Get current symbols count
         current_symbols = repository.get_all_symbols(active_only=False)
         stats['symbols_before'] = len(current_symbols)
-        current_symbol_set = {s.symbol for s in current_symbols}
         
         logger.info(f"Current symbols in database: {stats['symbols_before']}")
         

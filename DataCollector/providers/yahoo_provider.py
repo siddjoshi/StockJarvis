@@ -6,8 +6,8 @@ Provides historical data and quotes for Indian stocks.
 
 import yfinance as yf
 import pandas as pd
-from datetime import datetime, date, timedelta
-from typing import List, Optional, Dict, Any
+from datetime import datetime, date
+from typing import List, Optional, Dict
 import time
 
 from DataCollector.providers.base_provider import (
@@ -17,7 +17,6 @@ from DataCollector.providers.base_provider import (
     DataInterval,
     ProviderError,
     DataNotFoundError,
-    RateLimitError,
 )
 from core.logger import get_logger
 

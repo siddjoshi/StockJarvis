@@ -5,13 +5,11 @@ Tests Yahoo Finance, NSE, BSE, and Zerodha data providers.
 """
 
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 import pandas as pd
 
 from DataCollector.providers import (
     get_provider,
-    BaseDataProvider,
     YahooFinanceProvider,
     NSEProvider,
     BSEProvider,
@@ -23,7 +21,6 @@ from DataCollector.providers import (
 from DataCollector.providers.base_provider import (
     SymbolInfo,
     Quote,
-    DataInterval,
 )
 from DataCollector.data_manager import DataManager, get_data_manager, reset_data_manager
 

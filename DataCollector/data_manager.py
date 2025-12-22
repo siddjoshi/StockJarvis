@@ -5,17 +5,12 @@ Provides fallback logic, caching, data validation, and provider selection.
 """
 
 import pandas as pd
-from datetime import datetime, date, timedelta
+from datetime import date
 from typing import List, Optional, Dict, Any, Union
 import time
-from functools import lru_cache
 
 from DataCollector.providers import (
     BaseDataProvider,
-    YahooFinanceProvider,
-    NSEProvider,
-    BSEProvider,
-    ZerodhaProvider,
     ProviderError,
     DataNotFoundError,
     AuthenticationError,
@@ -600,6 +595,6 @@ def reset_data_manager() -> None:
     if _data_manager is not None:
         try:
             _data_manager.disconnect()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.exception("Error while disconnecting global data manager: %s", exc)
         _data_manager = None

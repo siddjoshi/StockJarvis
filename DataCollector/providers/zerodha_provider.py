@@ -5,7 +5,7 @@ Provides historical and real-time data via Kite Connect API.
 """
 
 import pandas as pd
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from typing import List, Optional, Dict, Any
 import time
 
@@ -17,7 +17,6 @@ from DataCollector.providers.base_provider import (
     ProviderError,
     DataNotFoundError,
     AuthenticationError,
-    RateLimitError,
 )
 from core.logger import get_logger
 from config.settings import settings
@@ -417,8 +416,8 @@ class ZerodhaProvider(BaseDataProvider):
         logger.info(f"Fetching Zerodha quote for {symbol}")
         
         try:
-            # Get instrument token
-            instrument_token = self._get_instrument_token(symbol)
+            # Validate instrument exists (warms cache)
+            self._get_instrument_token(symbol)
             
             self._rate_limit()
             

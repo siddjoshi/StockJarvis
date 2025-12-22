@@ -6,11 +6,9 @@ Fetches data from NSE India website and APIs.
 
 import requests
 import pandas as pd
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from typing import List, Optional, Dict, Any
 import time
-import json
-
 from DataCollector.providers.base_provider import (
     BaseDataProvider,
     SymbolInfo,
@@ -18,7 +16,6 @@ from DataCollector.providers.base_provider import (
     DataInterval,
     ProviderError,
     DataNotFoundError,
-    RateLimitError,
 )
 from core.logger import get_logger
 
@@ -172,6 +169,7 @@ class NSEProvider(BaseDataProvider):
         Returns:
             bool: True if connection successful
         """
+        self._is_connected = False  # Ensure clean state before attempting
         try:
             self._initialize_session()
             
@@ -184,8 +182,11 @@ class NSEProvider(BaseDataProvider):
             
         except Exception as e:
             logger.error(f"Failed to connect to NSE: {e}")
-            self._is_connected = False
             return False
+        finally:
+            # Ensure state is consistent even if exception occurs
+            if not self._is_connected:
+                self._is_connected = False
     
     def disconnect(self) -> None:
         """Close NSE session."""

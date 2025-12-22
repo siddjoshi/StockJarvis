@@ -7,7 +7,6 @@ Provides access to data provider operations, symbol management, and data collect
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 
 from api.dependencies import get_db, require_active_user

@@ -6,7 +6,7 @@ Fetches data from BSE India website and APIs.
 
 import requests
 import pandas as pd
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from typing import List, Optional, Dict, Any
 import time
 
@@ -17,7 +17,6 @@ from DataCollector.providers.base_provider import (
     DataInterval,
     ProviderError,
     DataNotFoundError,
-    RateLimitError,
 )
 from core.logger import get_logger
 
