@@ -23,7 +23,8 @@ from api.routes import (
     signals_router,
     positions_router,
     orders_router,
-    backtest_router
+    backtest_router,
+    risk_router
 )
 
 logger = get_logger(__name__)
@@ -268,7 +269,8 @@ app.include_router(strategies_router, prefix="/api/strategies", tags=["Strategie
 app.include_router(signals_router, prefix="/api/signals", tags=["Signals"])
 app.include_router(positions_router, prefix="/api/positions", tags=["Positions"])
 app.include_router(orders_router, prefix="/api/orders", tags=["Orders"])
-app.include_router(backtest_router, prefix="/api/backtest", tags=["Backtesting"])
+app.include_router(backtest_router, prefix="/api/backtests", tags=["Backtesting"])
+app.include_router(risk_router, prefix="/api/risk", tags=["Risk Management"])
 
 
 # ==================== Development Entry Point ====================

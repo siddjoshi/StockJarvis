@@ -24,7 +24,7 @@ from core.logger import get_logger
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/strategies", tags=["strategies"])
+router = APIRouter()
 
 
 @router.get("/", response_model=List[StrategyResponse])

@@ -26,7 +26,7 @@ from config import settings
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/positions", tags=["positions"])
+router = APIRouter()
 
 
 @router.get("/", response_model=List[PositionWithDetails])

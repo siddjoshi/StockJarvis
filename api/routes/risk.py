@@ -17,7 +17,7 @@ from config import settings
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/risk", tags=["risk"])
+router = APIRouter()
 
 
 @router.get("/portfolio", response_model=Dict[str, Any])
