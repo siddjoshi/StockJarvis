@@ -11,7 +11,7 @@ from typing import Dict, Any
 from unittest.mock import patch, Mock
 
 # Create a test-only version of the app that doesn't connect to MySQL at startup
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -194,7 +194,6 @@ def create_test_app():
         try:
             strategy = db.query(Strategy).filter(Strategy.id == strategy_id).first()
             if not strategy:
-                from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail=f"Strategy {strategy_id} not found")
             return {
                 "id": strategy.id,
@@ -238,7 +237,6 @@ def create_test_app():
         try:
             strategy = db.query(Strategy).filter(Strategy.id == strategy_id).first()
             if not strategy:
-                from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail=f"Strategy {strategy_id} not found")
             for key, value in updates.items():
                 if hasattr(strategy, key):
@@ -254,7 +252,6 @@ def create_test_app():
         try:
             strategy = db.query(Strategy).filter(Strategy.id == strategy_id).first()
             if not strategy:
-                from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail=f"Strategy {strategy_id} not found")
             db.delete(strategy)
             db.commit()
@@ -295,7 +292,6 @@ def create_test_app():
         try:
             signal = db.query(Signal).filter(Signal.id == signal_id).first()
             if not signal:
-                from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail=f"Signal {signal_id} not found")
             return {
                 "id": signal.id,
@@ -370,7 +366,6 @@ def create_test_app():
         try:
             position = db.query(Position).filter(Position.id == position_id).first()
             if not position:
-                from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail=f"Position {position_id} not found")
             return {
                 "id": position.id,
@@ -392,7 +387,6 @@ def create_test_app():
         try:
             position = db.query(Position).filter(Position.id == position_id).first()
             if not position:
-                from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail=f"Position {position_id} not found")
             for key, value in updates.items():
                 if hasattr(position, key):
@@ -408,7 +402,6 @@ def create_test_app():
         try:
             position = db.query(Position).filter(Position.id == position_id).first()
             if not position:
-                from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail=f"Position {position_id} not found")
             position.is_open = False
             position.exit_time = datetime.utcnow()
@@ -460,7 +453,6 @@ def create_test_app():
         try:
             symbol = db.query(Symbol).filter(Symbol.id == symbol_id).first()
             if not symbol:
-                from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail=f"Symbol {symbol_id} not found")
             return {
                 "id": symbol.id,
@@ -519,7 +511,6 @@ def create_test_app():
         try:
             order = db.query(Order).filter(Order.id == order_id).first()
             if not order:
-                from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail=f"Order {order_id} not found")
             order.status = OrderStatus.CANCELLED
             db.commit()
