@@ -18,6 +18,7 @@ from api.routes.signals import router as signals_router
 from api.routes.symbols import router as symbols_router
 from api.routes.backtests import router as backtest_router
 from api.routes.risk import router as risk_router
+from api.routes.data import router as data_router
 
 # Auth router is defined inline since it requires special OAuth2 handling
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -184,4 +185,5 @@ __all__ = [
     "orders_router",
     "backtest_router",
     "risk_router",
+    "data_router",
 ]
