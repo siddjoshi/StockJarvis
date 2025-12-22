@@ -19,13 +19,14 @@ logger = get_logger(__name__)
 # Create Celery application instance
 celery_app = Celery(
     "stockjarvis",
-    broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL,
+    broker=settings.redis.url,
+    backend=settings.redis.url,
     include=[
         "workers.tasks.data_collection",
         "workers.tasks.signal_generation",
-        "workers.tasks.monitoring",
-        "workers.tasks.maintenance",
+        "workers.tasks.position_monitoring",
+        "workers.tasks.risk_management",
+        "workers.tasks.system_maintenance",
     ],
 )
 
@@ -62,11 +63,11 @@ celery_app.conf.task_queues = (
 # Task routing configuration
 celery_app.conf.task_routes = {
     # High priority tasks - real-time monitoring and trading
-    "workers.tasks.monitoring.monitor_positions": {
+    "workers.tasks.position_monitoring.monitor_positions": {
         "queue": "high_priority",
         "routing_key": "high",
     },
-    "workers.tasks.monitoring.check_risk_limits": {
+    "workers.tasks.risk_management.check_risk_limits": {
         "queue": "high_priority",
         "routing_key": "high",
     },
@@ -83,11 +84,11 @@ celery_app.conf.task_routes = {
         "queue": "default",
         "routing_key": "default",
     },
-    "workers.tasks.monitoring.reconcile_broker": {
+    "workers.tasks.position_monitoring.reconcile_broker_positions": {
         "queue": "default",
         "routing_key": "default",
     },
-    "workers.tasks.monitoring.health_check": {
+    "workers.tasks.system_maintenance.health_check": {
         "queue": "default",
         "routing_key": "default",
     },
@@ -100,11 +101,11 @@ celery_app.conf.task_routes = {
         "queue": "low_priority",
         "routing_key": "low",
     },
-    "workers.tasks.maintenance.cleanup_old_signals": {
+    "workers.tasks.signal_generation.cleanup_old_signals": {
         "queue": "low_priority",
         "routing_key": "low",
     },
-    "workers.tasks.maintenance.backup_database": {
+    "workers.tasks.system_maintenance.backup_database": {
         "queue": "low_priority",
         "routing_key": "low",
     },
@@ -355,8 +356,9 @@ celery_app.autodiscover_tasks(
     [
         "workers.tasks.data_collection",
         "workers.tasks.signal_generation",
-        "workers.tasks.monitoring",
-        "workers.tasks.maintenance",
+        "workers.tasks.position_monitoring",
+        "workers.tasks.risk_management",
+        "workers.tasks.system_maintenance",
     ],
     force=True,
 )

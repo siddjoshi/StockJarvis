@@ -130,9 +130,9 @@ beat_schedule: Dict[str, Dict[str, Any]] = {
             "expires": 300,  # Expire after 5 minutes
         },
     },
-    # Monitoring Tasks
+    # Position Monitoring Tasks
     "monitor-positions": {
-        "task": "workers.tasks.monitoring.monitor_positions",
+        "task": "workers.tasks.position_monitoring.monitor_positions",
         "schedule": crontab(
             hour="9-15",
             minute="*/2",  # Every 2 minutes
@@ -145,7 +145,7 @@ beat_schedule: Dict[str, Dict[str, Any]] = {
         },
     },
     "reconcile-broker": {
-        "task": "workers.tasks.monitoring.reconcile_broker",
+        "task": "workers.tasks.position_monitoring.reconcile_broker_positions",
         "schedule": crontab(
             hour="*/1",  # Every hour
             minute=0,
@@ -156,8 +156,9 @@ beat_schedule: Dict[str, Dict[str, Any]] = {
             "expires": 3600,  # Expire after 1 hour
         },
     },
+    # Risk Management Tasks
     "check-risk-limits": {
-        "task": "workers.tasks.monitoring.check_risk_limits",
+        "task": "workers.tasks.risk_management.check_risk_limits",
         "schedule": crontab(
             hour="9-15",
             minute="*/10",  # Every 10 minutes
@@ -169,8 +170,9 @@ beat_schedule: Dict[str, Dict[str, Any]] = {
             "expires": 600,  # Expire after 10 minutes
         },
     },
+    # System Maintenance Tasks
     "health-check": {
-        "task": "workers.tasks.monitoring.health_check",
+        "task": "workers.tasks.system_maintenance.health_check",
         "schedule": crontab(minute="*/15"),  # Every 15 minutes
         "options": {
             "queue": "default",
@@ -178,9 +180,8 @@ beat_schedule: Dict[str, Dict[str, Any]] = {
             "expires": 900,  # Expire after 15 minutes
         },
     },
-    # Maintenance Tasks
     "cleanup-old-signals": {
-        "task": "workers.tasks.maintenance.cleanup_old_signals",
+        "task": "workers.tasks.signal_generation.cleanup_old_signals",
         "schedule": crontab(hour=2, minute=0),  # 2:00 AM daily
         "options": {
             "queue": "low_priority",
@@ -189,7 +190,7 @@ beat_schedule: Dict[str, Dict[str, Any]] = {
         },
     },
     "backup-database": {
-        "task": "workers.tasks.maintenance.backup_database",
+        "task": "workers.tasks.system_maintenance.backup_database",
         "schedule": crontab(hour=1, minute=0),  # 1:00 AM daily
         "options": {
             "queue": "low_priority",
@@ -230,12 +231,12 @@ task_annotations = {
         "time_limit": 300,
         "soft_time_limit": 240,
     },
-    "workers.tasks.monitoring.monitor_positions": {
+    "workers.tasks.position_monitoring.monitor_positions": {
         "rate_limit": "30/m",  # Every 2 minutes
         "time_limit": 120,
         "soft_time_limit": 90,
     },
-    "workers.tasks.monitoring.check_risk_limits": {
+    "workers.tasks.risk_management.check_risk_limits": {
         "rate_limit": "6/m",  # Every 10 minutes
         "time_limit": 600,
         "soft_time_limit": 540,
@@ -246,7 +247,7 @@ task_annotations = {
         "time_limit": 7200,  # 2 hours
         "soft_time_limit": 6900,
     },
-    "workers.tasks.maintenance.backup_database": {
+    "workers.tasks.system_maintenance.backup_database": {
         "rate_limit": "1/h",
         "time_limit": 3600,
         "soft_time_limit": 3300,
@@ -300,6 +301,7 @@ result_chord_retry_interval = 1.0  # Seconds between chord retry
 imports = [
     "workers.tasks.data_collection",
     "workers.tasks.signal_generation",
-    "workers.tasks.monitoring",
-    "workers.tasks.maintenance",
+    "workers.tasks.position_monitoring",
+    "workers.tasks.risk_management",
+    "workers.tasks.system_maintenance",
 ]

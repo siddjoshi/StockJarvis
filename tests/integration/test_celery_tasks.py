@@ -19,19 +19,26 @@ from workers.tasks.data_collection import (
 )
 from workers.tasks.signal_generation import (
     generate_eod_signals,
-    generate_intraday_signals
+    generate_intraday_signals,
+    cleanup_old_signals
 )
 from workers.tasks.position_monitoring import (
     monitor_positions,
     reconcile_broker_positions
 )
 from workers.tasks.system_maintenance import (
-    cleanup_old_signals,
-    backup_database
+    backup_database,
+    health_check,
+    cleanup_old_data,
+    generate_daily_report
+)
+from workers.tasks.risk_management import (
+    check_risk_limits,
+    update_circuit_breaker,
+    calculate_position_sizes
 )
 from data.models import Symbol, Strategy, Position, Signal, Price, Exchange, OrderAction, TradingMode
 from core.strategy_engine import registry as strategy_registry
-from strategies.eod_strategies import SMAGoldenCrossStrategy
 
 
 # ============================================================================
