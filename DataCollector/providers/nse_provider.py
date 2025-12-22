@@ -183,10 +183,6 @@ class NSEProvider(BaseDataProvider):
         except Exception as e:
             logger.error(f"Failed to connect to NSE: {e}")
             return False
-        finally:
-            # Ensure state is consistent even if exception occurs
-            if not self._is_connected:
-                self._is_connected = False
     
     def disconnect(self) -> None:
         """Close NSE session."""
