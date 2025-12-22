@@ -4,8 +4,7 @@ Position management module for Zerodha Kite Connect.
 Provides high-level position operations with reconciliation support.
 """
 
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import List, Optional, Dict
 from dataclasses import dataclass
 
 from BrokerModules.base_broker import (
@@ -454,21 +453,21 @@ class PositionManager:
             "short_exposure": short_exposure,
             "net_exposure": net_exposure,
             "gross_exposure": gross_exposure,
-            "long_short_ratio": long_exposure / short_exposure if short_exposure > 0 else float('inf')
+            "long_short_ratio": long_exposure / short_exposure if short_exposure > 0 else 0.0
         }
     
     def get_sector_exposure(self) -> Dict[str, float]:
         """
-        Get exposure by sector (requires sector mapping).
+        Get exposure by sector.
         
-        Note: This is a placeholder. Sector data would need to be
-        maintained separately or fetched from another source.
+        This functionality is not currently implemented. Computing sector
+        exposure would require a symbol -> sector mapping that is maintained
+        separately or fetched from another data source.
         
         Returns:
-            Dict[str, float]: Sector -> exposure mapping
+            Dict[str, float]: Currently always returns an empty dict, as
+            sector exposure is not available.
         """
-        # TODO: Implement sector mapping
-        # This would require maintaining a symbol -> sector mapping
         logger.warning("Sector exposure not implemented - requires sector mapping")
         return {}
     

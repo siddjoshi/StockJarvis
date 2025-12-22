@@ -4,7 +4,7 @@ Market data module for Zerodha Kite Connect.
 Provides market quotes, OHLC data, and historical data download.
 """
 
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 import threading
@@ -41,6 +41,7 @@ class QuoteCache:
     """
     Simple in-memory cache for quotes.
     Reduces API calls for frequently requested symbols.
+    Uses RLock to allow concurrent reads without blocking.
     """
     
     def __init__(self, ttl_seconds: int = 5):
@@ -52,7 +53,7 @@ class QuoteCache:
         """
         self._cache: Dict[str, tuple] = {}  # key -> (data, timestamp)
         self._ttl = ttl_seconds
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
     
     def get(self, key: str) -> Optional[Any]:
         """Get cached value if not expired."""
@@ -212,7 +213,7 @@ class MarketDataManager:
                 else:
                     symbols_to_fetch.append((symbol, exchange))
         else:
-            symbols_to_fetch = symbols
+            symbols_to_fetch = list(symbols)
         
         # Fetch remaining symbols
         for symbol, exchange in symbols_to_fetch:
@@ -223,8 +224,17 @@ class MarketDataManager:
                 if use_cache:
                     cache_key = f"{exchange.value}:{symbol}"
                     self._quote_cache.set(cache_key, quote)
+            except BrokerError as e:
+                logger.error(f"Failed to get quote for {symbol} on {exchange}: {e}")
+                # Propagate broker-specific errors so callers can distinguish failures
+                raise
             except Exception as e:
-                logger.error(f"Failed to get quote for {symbol}: {e}")
+                # Log unexpected exceptions with traceback and wrap in BrokerError
+                logger.exception(f"Unexpected error while getting quote for {symbol} on {exchange}")
+                raise BrokerError(
+                    message=f"Unexpected error while getting quote for {symbol} on {exchange}",
+                    original_error=e
+                )
         
         return result
     

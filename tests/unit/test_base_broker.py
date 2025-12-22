@@ -319,7 +319,12 @@ class TestExceptions:
         assert error.message == "Test error message"
         assert error.code == "TEST_CODE"
         assert isinstance(error.original_error, ValueError)
-        assert str(error) == "Test error message"
+        # Updated: str() now includes code and original error context
+        error_str = str(error)
+        assert "TEST_CODE" in error_str
+        assert "Test error message" in error_str
+        assert "ValueError" in error_str
+        assert "Original error" in error_str
     
     def test_authentication_error(self):
         """Test AuthenticationError exception."""
@@ -331,6 +336,9 @@ class TestExceptions:
         assert isinstance(error, BrokerError)
         assert error.message == "Token expired"
         assert error.code == "TOKEN_EXPIRED"
+        # str() includes code
+        assert "TOKEN_EXPIRED" in str(error)
+        assert "Token expired" in str(error)
     
     def test_order_error(self):
         """Test OrderError exception."""

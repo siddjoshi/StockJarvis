@@ -4,13 +4,12 @@ Broker integration endpoints for StockJarvis API.
 Handles broker authentication, connection status, and operations.
 """
 
-from typing import Dict, Any, Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from fastapi.responses import RedirectResponse
+import threading
+from typing import Optional, List
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel, Field
-from datetime import datetime
 
-from api.dependencies import get_db, require_active_user
+from api.dependencies import require_active_user
 from config.settings import settings
 from core.logger import get_logger
 from BrokerModules.base_broker import (
@@ -21,23 +20,26 @@ from BrokerModules.base_broker import (
     ExchangeType,
     AuthenticationError,
     OrderError,
-    BrokerError,
 )
 
 logger = get_logger(__name__)
 
 router = APIRouter()
 
-# Global broker client instance (singleton pattern)
+# Thread-safe broker client singleton
 _broker_client = None
+_broker_client_lock = threading.Lock()
 
 
 def get_broker_client():
-    """Get or create the broker client instance."""
+    """Get or create the broker client instance (thread-safe)."""
     global _broker_client
     if _broker_client is None:
-        from BrokerModules.Zerodha.kite_client import KiteClient
-        _broker_client = KiteClient()
+        with _broker_client_lock:
+            # Double-check inside lock
+            if _broker_client is None:
+                from BrokerModules.Zerodha.kite_client import KiteClient
+                _broker_client = KiteClient()
     return _broker_client
 
 
@@ -186,12 +188,14 @@ async def initiate_broker_login(
 @router.get("/callback")
 async def broker_callback(
     request_token: str = Query(..., description="OAuth request token"),
-    status_code: Optional[str] = Query(None, alias="status")
+    status_code: Optional[str] = Query(None, alias="status"),
+    current_user=Depends(require_active_user)
 ):
     """
     OAuth callback endpoint for Zerodha.
     
     This endpoint receives the request_token after successful Zerodha login.
+    Requires authenticated user to prevent session hijacking.
     
     **Query Parameters:**
     - request_token: OAuth request token from Zerodha

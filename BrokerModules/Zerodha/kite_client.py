@@ -15,9 +15,7 @@ from kiteconnect.exceptions import (
     KiteException,
     TokenException,
     GeneralException,
-    PermissionException,
     InputException,
-    DataException,
     NetworkException,
     OrderException,
 )
@@ -55,17 +53,18 @@ def rate_limited(max_calls_per_second: int = 3):
     """
     min_interval = 1.0 / max_calls_per_second
     lock = threading.Lock()
-    last_call_time = [0.0]  # Using list to allow modification in closure
+    last_call_time = 0.0
     
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
+            nonlocal last_call_time
             with lock:
-                elapsed = time.time() - last_call_time[0]
+                elapsed = time.time() - last_call_time
                 if elapsed < min_interval:
                     sleep_time = min_interval - elapsed
                     time.sleep(sleep_time)
-                last_call_time[0] = time.time()
+                last_call_time = time.time()
             return func(*args, **kwargs)
         return wrapper
     return decorator
@@ -102,7 +101,21 @@ def retry_on_error(max_retries: int = 3, delay: float = 1.0):
                         code="TOKEN_ERROR",
                         original_error=e
                     )
-            raise last_exception
+            # Wrap the final failure in a BrokerError to preserve context for callers
+            if last_exception is not None:
+                raise BrokerError(
+                    message=(
+                        f"Operation {func.__name__} failed after {max_retries} retries: "
+                        f"{last_exception}"
+                    ),
+                    code="RETRY_FAILED",
+                    original_error=last_exception,
+                )
+            # Fallback: no exception was captured but we exhausted retries
+            raise BrokerError(
+                message=f"Operation {func.__name__} failed after {max_retries} retries.",
+                code="RETRY_FAILED",
+            )
         return wrapper
     return decorator
 
@@ -192,16 +205,7 @@ class KiteClient(BaseBroker):
         
         # Validate credentials in non-development environments
         if settings.app.env != "development":
-            if self._api_key in ("test_key", "", None):
-                raise ValueError(
-                    "Zerodha API key not configured. "
-                    "Set ZERODHA_API_KEY environment variable."
-                )
-            if self._api_secret in ("test_secret", "", None):
-                raise ValueError(
-                    "Zerodha API secret not configured. "
-                    "Set ZERODHA_API_SECRET environment variable."
-                )
+            self._validate_credentials()
         
         # Initialize KiteConnect client
         self._kite = KiteConnect(api_key=self._api_key)
@@ -213,6 +217,28 @@ class KiteClient(BaseBroker):
         self._authenticated = bool(self._access_token)
         
         logger.info(f"KiteClient initialized (authenticated={self._authenticated})")
+    
+    def _validate_credentials(self) -> None:
+        """Validate that credentials are properly configured and not placeholders."""
+        placeholder_patterns = (
+            "test_key", "test_secret", "your_api_key", "your_api_secret",
+            "xxx", "placeholder", "", None
+        )
+        
+        if self._api_key in placeholder_patterns or (
+            self._api_key and len(self._api_key) < 8
+        ):
+            raise ValueError(
+                "Zerodha API key not configured or appears to be a placeholder. "
+                "Set ZERODHA_API_KEY environment variable with a valid API key."
+            )
+        if self._api_secret in placeholder_patterns or (
+            self._api_secret and len(self._api_secret) < 8
+        ):
+            raise ValueError(
+                "Zerodha API secret not configured or appears to be a placeholder. "
+                "Set ZERODHA_API_SECRET environment variable with a valid API secret."
+            )
     
     @property
     def name(self) -> str:
@@ -305,8 +331,9 @@ class KiteClient(BaseBroker):
         Logout and invalidate the session.
         
         Returns:
-            bool: True if logout successful
+            bool: True if logout successful, False if token invalidation failed on server
         """
+        api_logout_success = True
         try:
             if self._access_token:
                 self._kite.invalidate_access_token()
@@ -317,11 +344,15 @@ class KiteClient(BaseBroker):
             return True
             
         except KiteException as e:
-            logger.error(f"Error during logout: {e}")
+            logger.warning(
+                f"Failed to invalidate access token on server: {e}. "
+                "Token may still be valid server-side. Local session cleared."
+            )
+            api_logout_success = False
             # Still clear local session even if API call fails
             self._access_token = None
             self._authenticated = False
-            return True
+            return api_logout_success
     
     def _ensure_authenticated(self) -> None:
         """Ensure the client is authenticated before making API calls."""
@@ -997,7 +1028,11 @@ class KiteClient(BaseBroker):
                 for ex in ExchangeType:
                     try:
                         instruments.extend(self._kite.instruments(self.EXCHANGE_MAP[ex]))
-                    except Exception:
+                    except KiteException as e:
+                        logger.warning(f"Failed to get instruments for exchange {ex}: {e}")
+                        continue
+                    except KeyError as e:
+                        logger.error(f"Exchange mapping missing for {ex}: {e}")
                         continue
                 return instruments
                 

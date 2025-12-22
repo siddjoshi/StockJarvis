@@ -137,6 +137,19 @@ class BrokerError(Exception):
         self.code = code
         self.original_error = original_error
         super().__init__(self.message)
+    
+    def __str__(self) -> str:
+        """Return a string representation including code and original error context."""
+        parts = []
+        if self.code:
+            parts.append(f"[{self.code}]")
+        if self.message:
+            parts.append(self.message)
+        if self.original_error:
+            parts.append(
+                f"(caused by {type(self.original_error).__name__}: {self.original_error})"
+            )
+        return " ".join(parts) if parts else super().__str__()
 
 
 class AuthenticationError(BrokerError):

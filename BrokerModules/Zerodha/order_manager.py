@@ -65,6 +65,9 @@ class OrderManager:
         >>> print(f"Order ID: {order.order_id}")
     """
     
+    # Maximum number of orders to keep in memory for audit history
+    MAX_ORDER_HISTORY = 1000
+    
     def __init__(self, client: KiteClient):
         """
         Initialize order manager.
@@ -564,6 +567,11 @@ class OrderManager:
             }
         
         self._order_history.append(log_entry)
+        
+        # Trim history if it exceeds the maximum size
+        if len(self._order_history) > self.MAX_ORDER_HISTORY:
+            # Keep the most recent entries
+            self._order_history = self._order_history[-self.MAX_ORDER_HISTORY:]
         
         logger.info(
             f"Order activity: {action} - "
