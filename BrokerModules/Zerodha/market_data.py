@@ -443,18 +443,37 @@ class MarketDataManager:
     
     def _parse_instrument(self, data: Dict[str, Any]) -> InstrumentInfo:
         """Parse raw instrument data to InstrumentInfo."""
+        # Safely extract and validate numeric fields
+        def safe_int(value, default: int = 0) -> int:
+            """Safely convert value to int."""
+            if value is None:
+                return default
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                return default
+        
+        def safe_float(value, default: float = 0.0) -> float:
+            """Safely convert value to float."""
+            if value is None:
+                return default
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return default
+        
         return InstrumentInfo(
-            instrument_token=data.get("instrument_token", 0),
-            exchange_token=data.get("exchange_token", 0),
-            tradingsymbol=data.get("tradingsymbol", ""),
-            name=data.get("name", ""),
-            exchange=data.get("exchange", ""),
-            segment=data.get("segment", ""),
-            instrument_type=data.get("instrument_type", ""),
-            lot_size=data.get("lot_size", 1),
-            tick_size=data.get("tick_size", 0.05),
+            instrument_token=safe_int(data.get("instrument_token"), 0),
+            exchange_token=safe_int(data.get("exchange_token"), 0),
+            tradingsymbol=str(data.get("tradingsymbol", "")),
+            name=str(data.get("name", "")),
+            exchange=str(data.get("exchange", "")),
+            segment=str(data.get("segment", "")),
+            instrument_type=str(data.get("instrument_type", "")),
+            lot_size=safe_int(data.get("lot_size"), 1),
+            tick_size=safe_float(data.get("tick_size"), 0.05),
             expiry=data.get("expiry"),
-            strike=data.get("strike")
+            strike=safe_float(data.get("strike")) if data.get("strike") is not None else None
         )
     
     def get_instrument_token(

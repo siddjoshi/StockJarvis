@@ -182,10 +182,26 @@ class KiteClient(BaseBroker):
             api_key: Kite Connect API key (default: from settings)
             api_secret: Kite Connect API secret (default: from settings)
             access_token: Pre-existing access token (optional)
+        
+        Raises:
+            ValueError: If API key or secret are not properly configured
         """
         self._api_key = api_key or settings.zerodha.api_key
         self._api_secret = api_secret or settings.zerodha.api_secret
         self._access_token = access_token or settings.zerodha.access_token
+        
+        # Validate credentials in non-development environments
+        if settings.app.env != "development":
+            if self._api_key in ("test_key", "", None):
+                raise ValueError(
+                    "Zerodha API key not configured. "
+                    "Set ZERODHA_API_KEY environment variable."
+                )
+            if self._api_secret in ("test_secret", "", None):
+                raise ValueError(
+                    "Zerodha API secret not configured. "
+                    "Set ZERODHA_API_SECRET environment variable."
+                )
         
         # Initialize KiteConnect client
         self._kite = KiteConnect(api_key=self._api_key)

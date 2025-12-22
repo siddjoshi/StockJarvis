@@ -381,11 +381,23 @@ async def place_order(
     try:
         client = get_authenticated_broker()
         
-        # Map string values to enums
+        # Map string values to enums using explicit mappings
+        ORDER_TYPE_MAPPING = {
+            "MARKET": OrderType.MARKET,
+            "LIMIT": OrderType.LIMIT,
+            "SL": OrderType.STOP_LOSS,
+            "SL-M": OrderType.STOP_LOSS_MARKET,
+            "STOP_LOSS": OrderType.STOP_LOSS,
+            "STOP_LOSS_MARKET": OrderType.STOP_LOSS_MARKET,
+        }
+        
         try:
             exchange = ExchangeType[order.exchange.upper()]
             transaction_type = TransactionType[order.transaction_type.upper()]
-            order_type = OrderType[order.order_type.upper().replace("-", "_")]
+            order_type_upper = order.order_type.upper()
+            if order_type_upper not in ORDER_TYPE_MAPPING:
+                raise KeyError(f"Invalid order type: {order.order_type}")
+            order_type = ORDER_TYPE_MAPPING[order_type_upper]
             product = ProductType[order.product.upper()]
         except KeyError as e:
             raise HTTPException(
