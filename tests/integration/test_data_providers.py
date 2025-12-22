@@ -436,12 +436,14 @@ class TestZerodhaProvider:
     @patch('kiteconnect.KiteConnect')
     def test_get_login_url(self, mock_kite, zerodha_provider):
         """Test getting login URL."""
+        expected_url = "https://kite.zerodha.com/connect/login?v=3&api_key=test_key"
         mock_kite_instance = Mock()
-        mock_kite_instance.login_url.return_value = "https://kite.zerodha.com/connect/login?v=3&api_key=test_key"
+        mock_kite_instance.login_url.return_value = expected_url
         mock_kite.return_value = mock_kite_instance
         
         url = zerodha_provider.get_login_url()
-        assert "kite.zerodha.com" in url
+        # Verify URL matches expected format exactly
+        assert url == expected_url
 
 
 # ============================================================================

@@ -96,16 +96,32 @@ class DataManager:
             cache_ttl: Cache time-to-live in seconds
             validate_data: Enable data validation
         """
-        # Use settings or defaults
-        self.primary_provider_name = primary_provider or getattr(
-            settings.app, 'primary_data_provider', 'yahoo'
-        )
-        self.fallback_provider_name = fallback_provider or getattr(
-            settings.app, 'fallback_data_provider', 'yahoo'
-        )
+        # Use settings or defaults with safe access
+        app_settings = getattr(settings, 'app', None)
+        
+        if primary_provider:
+            self.primary_provider_name = primary_provider
+        elif app_settings and hasattr(app_settings, 'primary_data_provider'):
+            self.primary_provider_name = app_settings.primary_data_provider
+        else:
+            self.primary_provider_name = 'yahoo'
+        
+        if fallback_provider:
+            self.fallback_provider_name = fallback_provider
+        elif app_settings and hasattr(app_settings, 'fallback_data_provider'):
+            self.fallback_provider_name = app_settings.fallback_data_provider
+        else:
+            self.fallback_provider_name = 'yahoo'
         
         self.enable_cache = enable_cache
-        self.cache_ttl = cache_ttl or getattr(settings.app, 'data_cache_ttl', 60)
+        
+        if cache_ttl is not None:
+            self.cache_ttl = cache_ttl
+        elif app_settings and hasattr(app_settings, 'data_cache_ttl'):
+            self.cache_ttl = app_settings.data_cache_ttl
+        else:
+            self.cache_ttl = 60
+        
         self.validate_data = validate_data
         
         # Provider instances

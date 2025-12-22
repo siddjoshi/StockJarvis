@@ -82,10 +82,11 @@ class ZerodhaProvider(BaseDataProvider):
         """
         super().__init__(name="zerodha", exchange="NSE")
         
-        # Use settings if credentials not provided
-        self.api_key = api_key or settings.zerodha.api_key
-        self.api_secret = api_secret or settings.zerodha.api_secret
-        self.access_token = access_token or settings.zerodha.access_token
+        # Use settings if credentials not provided, with safe access
+        zerodha_settings = getattr(settings, 'zerodha', None)
+        self.api_key = api_key or (getattr(zerodha_settings, 'api_key', None) if zerodha_settings else None) or "not_configured"
+        self.api_secret = api_secret or (getattr(zerodha_settings, 'api_secret', None) if zerodha_settings else None) or "not_configured"
+        self.access_token = access_token or (getattr(zerodha_settings, 'access_token', None) if zerodha_settings else None)
         
         self.rate_limit_delay = rate_limit_delay
         self.max_retries = max_retries

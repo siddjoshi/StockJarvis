@@ -287,12 +287,15 @@ class BaseDataProvider(ABC):
             if col not in df.columns:
                 raise ValueError(f"Missing required column: {col}")
         
-        # Remove rows with negative prices
-        for col in ['open', 'high', 'low', 'close']:
-            df = df[df[col] > 0]
-        
-        # Remove rows with negative volume
-        df = df[df['volume'] >= 0]
+        # Remove rows with invalid data using single boolean mask
+        valid_mask = (
+            (df['open'] > 0) &
+            (df['high'] > 0) &
+            (df['low'] > 0) &
+            (df['close'] > 0) &
+            (df['volume'] >= 0)
+        )
+        df = df[valid_mask]
         
         # Fix OHLC relationships
         # High should be >= Open, Close, Low
