@@ -4,7 +4,7 @@ Handles slippage models, commission models, and position management.
 """
 
 from dataclasses import dataclass
-from typing import Optional, Callable
+from typing import Optional, Callable, Tuple
 from enum import Enum
 import math
 
@@ -373,7 +373,7 @@ class BacktestExecutor:
         stop_loss: float,
         current_high: float,
         current_low: float
-    ) -> tuple[bool, float]:
+    ) -> Tuple[bool, float]:
         """
         Check if stop loss is hit.
         
@@ -403,7 +403,7 @@ class BacktestExecutor:
         target: float,
         current_high: float,
         current_low: float
-    ) -> tuple[bool, float]:
+    ) -> Tuple[bool, float]:
         """
         Check if target is hit.
         
