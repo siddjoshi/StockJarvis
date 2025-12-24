@@ -18,7 +18,7 @@ from api.schemas import (
 )
 from data.models import BacktestResult, Strategy, Symbol
 from core.logger import get_logger
-from core.backtester import BacktestEngine, BacktestConfig, run_backtest
+from core.backtester import BacktestEngine, BacktestConfig
 from core.strategy_engine import registry as strategy_registry
 from config import settings
 

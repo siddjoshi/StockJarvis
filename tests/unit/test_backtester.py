@@ -13,9 +13,7 @@ from core.backtester import (
     BacktestEngine,
     BacktestConfig,
     BacktestTrade,
-    BacktestPosition,
     BacktestResult,
-    run_backtest
 )
 from core.backtest_executor import (
     BacktestExecutor,
@@ -30,10 +28,9 @@ from core.backtest_analyzer import (
     BacktestAnalyzer,
     PerformanceMetrics,
     analyze_backtest,
-    RISK_FREE_RATE
 )
 from core.strategy_engine import Strategy, SignalOutput
-from data.models import OrderAction, Timeframe
+from data.models import OrderAction
 
 
 # ============================================================================

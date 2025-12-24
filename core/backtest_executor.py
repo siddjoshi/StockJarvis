@@ -4,9 +4,8 @@ Handles slippage models, commission models, and position management.
 """
 
 from dataclasses import dataclass
-from typing import Optional, Callable, Tuple
+from typing import Optional, Tuple
 from enum import Enum
-import math
 
 from core.logger import get_logger
 from data.models import OrderAction
@@ -264,7 +263,9 @@ class BacktestExecutor:
         if action == OrderAction.BUY:
             total_cost = order_value + commission  # Pay for shares + commission
         else:
-            total_cost = -order_value + commission  # Receive for shares, pay commission (for shorts)
+            # For a short sale, we receive the proceeds of selling the borrowed shares
+            # and pay commission, so the net amount received is order_value - commission.
+            total_cost = order_value - commission  # Receive for shares, pay commission (for shorts)
         
         # Update volume tracking
         self._total_volume += order_value

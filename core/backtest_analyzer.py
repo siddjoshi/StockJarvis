@@ -5,13 +5,12 @@ Calculates returns, risk metrics, trade statistics, and equity curves.
 
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
-from datetime import datetime, date, timedelta
 import math
 
 from core.logger import get_logger
 
 if TYPE_CHECKING:
-    from core.backtester import BacktestResult, BacktestTrade
+    from core.backtester import BacktestResult
 
 logger = get_logger(__name__)
 
@@ -223,7 +222,7 @@ class BacktestAnalyzer:
         
         # Calmar Ratio
         if self.metrics.max_drawdown > 0:
-            self.metrics.calmar_ratio = self.metrics.annual_return / self.metrics.max_drawdown
+            self.metrics.calmar_ratio = self.metrics.cagr / self.metrics.max_drawdown
     
     def _calculate_drawdown(self) -> None:
         """Calculate drawdown metrics."""

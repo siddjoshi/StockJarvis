@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 import pandas as pd
-import numpy as np
 
 from core.strategy_engine import Strategy, SignalOutput
 from core.logger import get_logger
@@ -363,28 +362,52 @@ class BacktestEngine:
             current_bar = data.loc[current_date]
             high = current_bar['high']
             low = current_bar['low']
+            open_price = current_bar['open']
             
             exit_price = None
             exit_reason = None
             
+            # Determine whether stop loss and/or target are hit on this bar
+            stop_hit = False
+            target_hit = False
+            
             if position.action == OrderAction.BUY:
-                # Check stop loss (hit if low <= stop)
-                if low <= position.stop_loss:
-                    exit_price = position.stop_loss
-                    exit_reason = "stop_loss_hit"
-                # Check target (hit if high >= target)
-                elif high >= position.target:
-                    exit_price = position.target
-                    exit_reason = "target_hit"
+                # For long positions:
+                # - Stop loss is hit if the bar's low trades at or below the stop.
+                # - Target is hit if the bar's high trades at or above the target.
+                stop_hit = low <= position.stop_loss
+                target_hit = high >= position.target
             else:  # SELL (short)
-                # Check stop loss (hit if high >= stop)
-                if high >= position.stop_loss:
+                # For short positions:
+                # - Stop loss is hit if the bar's high trades at or above the stop.
+                # - Target is hit if the bar's low trades at or below the target.
+                stop_hit = high >= position.stop_loss
+                target_hit = low <= position.target
+            
+            if stop_hit and target_hit:
+                # Both stop loss and target are within the bar's range.
+                # Approximate intrabar order by assuming the level closer to the bar's
+                # open is hit first. This reduces the bias of always prioritizing the stop.
+                stop_distance = abs(open_price - position.stop_loss)
+                target_distance = abs(open_price - position.target)
+                
+                if stop_distance < target_distance:
                     exit_price = position.stop_loss
                     exit_reason = "stop_loss_hit"
-                # Check target (hit if low <= target)
-                elif low <= position.target:
+                elif target_distance < stop_distance:
                     exit_price = position.target
                     exit_reason = "target_hit"
+                else:
+                    # Equal distance: fall back to previous behavior, which
+                    # effectively prioritized the stop loss in a tie.
+                    exit_price = position.stop_loss
+                    exit_reason = "stop_loss_hit"
+            elif stop_hit:
+                exit_price = position.stop_loss
+                exit_reason = "stop_loss_hit"
+            elif target_hit:
+                exit_price = position.target
+                exit_reason = "target_hit"
             
             if exit_price is not None:
                 positions_to_close.append((symbol, exit_price, exit_reason, current_date))
@@ -464,21 +487,27 @@ class BacktestEngine:
         if risk_per_share <= 0:
             return
         
-        quantity = int(risk_amount / risk_per_share)
+        # Initial position size based on risk
+        risk_quantity = int(risk_amount / risk_per_share)
+        if risk_quantity <= 0:
+            return
+        
+        # Maximum quantity allowed by available capital, including commission
+        effective_price_per_share = entry_price * (1 + self.config.commission_pct)
+        if effective_price_per_share <= 0:
+            return
+        max_capital_qty = int(self.capital / effective_price_per_share)
+        
+        # Final quantity is limited by both risk and capital constraints
+        quantity = min(risk_quantity, max_capital_qty)
         if quantity <= 0:
             return
         
-        # Apply commission
+        # Apply commission based on final quantity
         commission = entry_price * quantity * self.config.commission_pct
         
-        # Check if we have enough capital
+        # Total position cost (entry + commission) - guaranteed <= self.capital
         position_cost = entry_price * quantity + commission
-        if position_cost > self.capital:
-            # Reduce quantity to fit capital
-            quantity = int((self.capital - commission) / entry_price)
-            if quantity <= 0:
-                return
-            position_cost = entry_price * quantity + commission
         
         # Deduct from capital
         self.capital -= position_cost
@@ -623,7 +652,14 @@ class BacktestEngine:
             else:
                 unrealized_pnl = (position.entry_price - current_price) * position.quantity
             
-            equity += position.entry_price * position.quantity + unrealized_pnl
+            # Add position contribution to equity
+            if position.action == OrderAction.BUY:
+                # For long positions, equity gets the current market value
+                equity += current_price * position.quantity
+            else:
+                # For short positions, cash already includes entry proceeds,
+                # so the contribution to equity is just the unrealized P&L
+                equity += unrealized_pnl
         
         return equity
     
